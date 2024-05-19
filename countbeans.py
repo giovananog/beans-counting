@@ -85,13 +85,44 @@ def threshold(image, threshold_value):
         thresholded_row = []
         for pixel in row:
             if pixel >= threshold_value:
-                thresholded_row.append(255)  # Pixel branco
+                thresholded_row.append(255) 
             else:
-                thresholded_row.append(0)    # Pixel preto
+                thresholded_row.append(0)
         thresholded_image.append(thresholded_row)
     return thresholded_image
 
 
+#############################
+# labeling                  #
+#############################
+
+def connected_components_labeling(image):
+    label = 1
+    image_np = np.array(image) 
+    labels = np.zeros_like(image_np)
+
+    for i in range(image_np.shape[0]):
+        for j in range(image_np.shape[1]):
+            if image_np[i, j] == 0:
+                label_up = labels[i - 1, j] if i > 0 else 0
+                label_left = labels[i, j - 1] if j > 0 else 0
+
+                if label_up == 0 and label_left == 0:
+                    labels[i, j] = label
+                    label += 1
+                elif label_up != 0 and label_left == 0:
+                    labels[i, j] = label_up
+                elif label_up == 0 and label_left != 0:
+                    labels[i, j] = label_left
+                else:
+                    labels[i, j] = label_left
+                    if label_up != label_left:
+                        labels[labels == label_up] = label_left
+
+    num_components = len(np.unique(labels)) - 1 
+    print("Número de componentes conectados:", num_components)
+
+    return labels
 
 #############################
 # 'main'  #
@@ -113,6 +144,8 @@ print (np.asarray (img))
 
 #transformations 
 img = threshold(img, 100)
+
+img = connected_components_labeling(img)
 
 print (np.asarray (img))
 savepgm("result.pgm", img, 255)
