@@ -13,6 +13,10 @@ import numpy as np
 import argparse
 import os
 
+#############################
+# manipulate img functions  #
+#############################
+
 def readpgm (name):
     f = open(name,"r")
 
@@ -70,6 +74,29 @@ def imgalloc (nl, nc):
         img.append(lin)
     return img
 
+
+#############################
+# threshold                 #
+#############################
+
+def threshold(image, threshold_value):
+    thresholded_image = []
+    for row in image:
+        thresholded_row = []
+        for pixel in row:
+            if pixel >= threshold_value:
+                thresholded_row.append(255)  # Pixel branco
+            else:
+                thresholded_row.append(0)    # Pixel preto
+        thresholded_image.append(thresholded_row)
+    return thresholded_image
+
+
+
+#############################
+# 'main'  #
+#############################
+
 #Read image
 parser = argparse.ArgumentParser(description='Script description')
 
@@ -84,7 +111,8 @@ img = readpgm (image_name)
 print (np.asarray (img))
 #os.system("{} {} &".format("eog", image_name))
 
-#transformations here
+#transformations 
+img = threshold(img, 100)
 
 print (np.asarray (img))
 savepgm("result.pgm", img, 255)
