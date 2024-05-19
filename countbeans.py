@@ -25,10 +25,8 @@ def readpgm (name):
     while (line[0] == '#'):
            line = f.readline()
     (width, height) = [int(i) for i in line.split()]
-    print (width, height)
     depth = int(f.readline())
     assert depth <= 255
-    print (depth)
     
     img = []
     row = []
@@ -120,9 +118,59 @@ def connected_components_labeling(image):
                         labels[labels == label_up] = label_left
 
     num_components = len(np.unique(labels)) - 1 
-    print("Número de componentes conectados:", num_components)
+    print("#componentes:", num_components)
 
     return labels
+
+
+
+#############################
+# dilata                    #
+#############################
+
+def dilate(image, kernel):
+    image_height, image_width = image.shape
+    kernel_height, kernel_width = kernel.shape
+
+    pad_height = kernel_height // 2
+    pad_width = kernel_width // 2
+
+    dilated_image = np.zeros_like(image)
+
+    for i in range(image_height):
+        for j in range(image_width):
+            if image[i, j] == 255:
+                for m in range(kernel_height):
+                    for n in range(kernel_width):
+                        row = i + m - pad_height
+                        col = j + n - pad_width
+                        if 0 <= row < image_height and 0 <= col < image_width:
+                            if kernel[m, n] == 1:
+                                dilated_image[row, col] = 255
+
+    return dilated_image
+
+#############################
+# erosao                    #
+#############################
+def erode(image, kernel):
+    image_height, image_width = image.shape
+    kernel_height, kernel_width = kernel.shape
+    pad_height = kernel_height // 2
+    pad_width = kernel_width // 2
+    eroded_image = np.zeros_like(image)
+    for i in range(image_height):
+        for j in range(image_width):
+            min_val = 255
+            for m in range(kernel_height):
+                for n in range(kernel_width):
+                    row = i + m - pad_height
+                    col = j + n - pad_width
+                    if 0 <= row < image_height and 0 <= col < image_width:
+                        if kernel[m, n] == 1:
+                            min_val = min(min_val, image[row, col])
+            eroded_image[i, j] = min_val
+    return eroded_image
 
 #############################
 # 'main'  #
@@ -139,17 +187,23 @@ args = parser.parse_args()
 image_name = args.image_name
 
 img = readpgm (image_name)
-print (np.asarray (img))
-#os.system("{} {} &".format("eog", image_name))
 
-#transformations 
-img = threshold(img, 100)
+img = np.array(img)
+
+img = threshold(img, 55)
+img = np.array(img)
+
+kernel = np.ones((4, 4), dtype=np.uint8)
+img = dilate(img, kernel)
+
+kernel = np.ones((3, 3), dtype=np.uint8)
+img = erode(img, kernel)
 
 img = connected_components_labeling(img)
 
-print (np.asarray (img))
 savepgm("result.pgm", img, 255)
 
+#Discomment this line for linux system
 # os.system("{} {} &".format("eog", "result.pgm"))
 
 #Discomment this line for windows system
