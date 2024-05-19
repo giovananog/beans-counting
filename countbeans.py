@@ -61,7 +61,6 @@ def savepgm(name, img, depth):
                 f.write("{} ".format(pixel))
             f.write("\n")
 
-
 def imgalloc (nl, nc):
     img = []
     for i in range(nl):
@@ -85,23 +84,12 @@ img = readpgm (image_name)
 print (np.asarray (img))
 #os.system("{} {} &".format("eog", image_name))
 
-# Negative image processing
-nl = len(img)
-nc = len(img[0])
-imgS = imgalloc (nl, nc)
-for i in range(nl):
-    for j in range(nc):
-        imgS[i][j] = 255 - img[i][j]
+#transformations here
 
-print (np.asarray (imgS))
-savepgm("result.pgm", imgS, 255)
+print (np.asarray (img))
+savepgm("result.pgm", img, 255)
 
 # os.system("{} {} &".format("eog", "result.pgm"))
 
 #Discomment this line for windows system
 os.system("{} {} &".format("i_view64", "result.pgm"))
-
-# Other form to calculate negative image in python
-# imgT = np.asarray(img)
-# imgT = 255- imgT
-
