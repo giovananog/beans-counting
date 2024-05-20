@@ -10,7 +10,6 @@
 import matplotlib.image as img
 import numpy as np
 import argparse
-import os
 
 def readpgm (name):
     '''
@@ -76,115 +75,125 @@ def imgalloc (nl, nc):
         img.append(lin)
     return img
 
-def threshold(image, threshold_value):
+def find(parent, i):
     '''
-    Applies thresholding to the given image with the specified threshold value.
+    Finds the root of the set containing element i.
+    This function implements path compression to keep the tree flat.
     '''
-    return np.where(image >= threshold_value, 0, 255)
+    while parent[i] != i:
+        i = parent[i]
+    return i
 
-def connected_components_labeling(image):
+def union(parent, i, j):
     '''
-    Labels connected components in the binary image and returns the labeled image.
+    Unites the sets containing elements i and j.
+    This function uses the `find` function to determine the roots and then performs the union.
     '''
-    label = 1
-    image_np = np.array(image) 
-    labels = np.zeros_like(image_np)
+    x = find(parent, i)
+    y = find(parent, j)
+    parent[y] = x
 
-    for i in range(image_np.shape[0]):
-        for j in range(image_np.shape[1]):
-            if image_np[i, j] == 0:
-                label_up = labels[i - 1, j] if i > 0 else 0
-                label_left = labels[i, j - 1] if j > 0 else 0
+def label(image):
+    '''
+    Labels connected components in a binary image.
+    Uses a union-find algorithm to manage connected components and returns the number of components.
+    '''
+    nr = len(image)
+    nc = len(image[0])
+    px = [item for sublist in image for item in sublist]
+    num_label = 0
+    parent = [i for i in range(1000)]
 
-                if label_up == 0 and label_left == 0:
-                    labels[i, j] = label
-                    label += 1
-                elif label_up != 0 and label_left == 0:
-                    labels[i, j] = label_up
-                elif label_up == 0 and label_left != 0:
-                    labels[i, j] = label_left
-                else:
-                    labels[i, j] = label_left
-                    if label_up != label_left:
-                        labels[labels == label_up] = label_left
+    for i in range(1, nr):
+        for j in range(1, nc):
+            p = px[i * nc + j]
+            r = px[(i - 1) * nc + j]
+            t = px[i * nc + j - 1]
 
-    num_components = len(np.unique(labels)) - 1 
-    print("#componentes:", num_components)
+            if p != 0:
+                if r == 0 and t == 0:
+                    px[i * nc + j] = num_label + 1
+                    num_label += 1
+                if r != 0 and t == 0:
+                    px[i * nc + j] = r
+                if r == 0 and t != 0:
+                    px[i * nc + j] = t
+                if r != 0 and t != 0 and t == r:
+                    px[i * nc + j] = r
+                if r != 0 and t != 0 and t != r:
+                    px[i * nc + j] = t
+                    union(parent, r, t)
 
-    return labels
+    for i in range(nr * nc):
+        px[i] = find(parent, px[i])
 
-def dilate(image, kernel):
+    return len(set(px)) - 1
+
+
+def dilate(image):
     '''
     Performs dilation on the binary image using the given kernel.
     '''
-    image_height, image_width = image.shape
-    kernel_height, kernel_width = kernel.shape
+    nr = len(image)
+    nc = len(image[0])
+    out = [row[:] for row in image] 
 
-    pad_height = kernel_height // 2
-    pad_width = kernel_width // 2
+    for i in range(1, nr - 1):
+        for j in range(1, nc - 1):
+            maximum = -1  
+            for y in range(-1, 2):
+                for x in range(-1, 2):
+                    pixel = image[i + y][j + x]
+                    maximum = max(maximum, pixel)
+            out[i][j] = maximum  
 
-    dilated_image = np.zeros_like(image)
+    return out
 
-    for i in range(image_height):
-        for j in range(image_width):
-            if image[i, j] == 0:
-                for m in range(kernel_height):
-                    for n in range(kernel_width):
-                        row = i + m - pad_height
-                        col = j + n - pad_width
-                        if 0 <= row < image_height and 0 <= col < image_width:
-                            if kernel[m, n] == 1:
-                                dilated_image[row, col] = 255
-
-    return dilated_image
-
-def erode(image, kernel):
+def erode(image):
     '''
-    Performs erosion on the binary image using the given kernel.
+    Performs erosion on the given image.
     '''
-    image_height, image_width = image.shape
-    kernel_height, kernel_width = kernel.shape
-    pad_height = kernel_height // 2
-    pad_width = kernel_width // 2
-    eroded_image = np.zeros_like(image)
-    for i in range(image_height):
-        for j in range(image_width):
-            min_val = 255
-            for m in range(kernel_height):
-                for n in range(kernel_width):
-                    row = i + m - pad_height
-                    col = j + n - pad_width
-                    if 0 <= row < image_height and 0 <= col < image_width:
-                        if kernel[m, n] == 1:
-                            min_val = min(min_val, image[row, col])
-            eroded_image[i, j] = min_val
-    return eroded_image
+    nr = len(image)
+    nc = len(image[0])
+    out = [[0] * nc for _ in range(nr)] 
 
+    for i in range(1, nr - 1):
+        for j in range(1, nc - 1):
+            minimo = float('inf') 
+            for y in range(-1, 2):
+                for x in range(-1, 2):
+                    pixel = image[i + y][j + x]
+                    minimo = min(minimo, pixel)
+            out[i][j] = minimo  
 
-#Read image
-parser = argparse.ArgumentParser(description='Script description')
+    return out
 
-# Add Arguments
-parser.add_argument('image_name', type=str, help='Image name in format .PGM')
+def count_beans(img):
+    '''
+    Applies thresholding, erosion, dilation, and labeling to count the number of beans in the img.
+    Returns the number of beans.
+    '''
+    img = np.array(img)
+    threshold_value = 66  
 
-# Analising arguments in command line
-args = parser.parse_args()
-image_name = args.image_name
+    # thresholding
+    img_thresholded = np.where(img >= threshold_value, 0, 1)
 
-img = readpgm (image_name)
-img = np.array(img)
+    # erosion
+    img_eroded = erode(img_thresholded)
+    img_eroded = erode(img_eroded)
 
-# Applying threshold
-img = threshold(img, 55)
-img = np.array(img)
+    # dilation
+    img_dilated = dilate(img_eroded)
 
-# Dilation
-kernel = np.ones((4, 4), dtype=np.uint8)
-img = dilate(img, kernel)
+    return label(img_dilated)
 
-# Erosion
-kernel = np.ones((3, 3), dtype=np.uint8)
-img = erode(img, kernel)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Script description')
+    parser.add_argument('image_name', type=str, help='Image name in format .PGM')
+    args = parser.parse_args()
+    image_name = args.image_name
 
-# Connected components labeling
-img = connected_components_labeling(img)
+    img = readpgm (image_name)
+    beans = count_beans(img)
+    print("#componentes: ", beans)
