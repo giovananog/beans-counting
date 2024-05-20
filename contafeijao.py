@@ -4,20 +4,18 @@
  * Trabalho de Processamento de Imagens
  * Atividade 1 - Contagem de Feijoes
  * Professor: Luiz Eduardo da Silva
- * Aluno: Giovana Nogueira Oliveira
+ * Aluna: Giovana Nogueira Oliveira
  *-------------------------------------------------------------------------'''
 
-import matplotlib.pyplot as plt
 import matplotlib.image as img
 import numpy as np
 import argparse
 import os
 
-#############################
-# manipulate img functions  #
-#############################
-
 def readpgm (name):
+    '''
+    Reads a PGM image file and returns its pixel values as a list of lists.
+    '''
     f = open(name,"r")
 
     assert f.readline() == 'P2\n'
@@ -45,6 +43,9 @@ def readpgm (name):
     return img
 
 def savepgm(name, img, depth):
+    '''
+    Saves a PGM image with the given name, image array, and depth.
+    '''
     # Dimensions
     heigth = len(img)
     width = len(img[0])
@@ -64,6 +65,9 @@ def savepgm(name, img, depth):
             f.write("\n")
 
 def imgalloc (nl, nc):
+    '''
+    Allocates an image with given dimensions (nl x nc).
+    '''
     img = []
     for i in range(nl):
         lin = []
@@ -72,29 +76,16 @@ def imgalloc (nl, nc):
         img.append(lin)
     return img
 
-
-#############################
-# threshold                 #
-#############################
-
 def threshold(image, threshold_value):
-    thresholded_image = []
-    for row in image:
-        thresholded_row = []
-        for pixel in row:
-            if pixel >= threshold_value:
-                thresholded_row.append(255) 
-            else:
-                thresholded_row.append(0)
-        thresholded_image.append(thresholded_row)
-    return thresholded_image
-
-
-#############################
-# labeling                  #
-#############################
+    '''
+    Applies thresholding to the given image with the specified threshold value.
+    '''
+    return np.where(image >= threshold_value, 0, 255)
 
 def connected_components_labeling(image):
+    '''
+    Labels connected components in the binary image and returns the labeled image.
+    '''
     label = 1
     image_np = np.array(image) 
     labels = np.zeros_like(image_np)
@@ -122,13 +113,10 @@ def connected_components_labeling(image):
 
     return labels
 
-
-
-#############################
-# dilata                    #
-#############################
-
 def dilate(image, kernel):
+    '''
+    Performs dilation on the binary image using the given kernel.
+    '''
     image_height, image_width = image.shape
     kernel_height, kernel_width = kernel.shape
 
@@ -139,7 +127,7 @@ def dilate(image, kernel):
 
     for i in range(image_height):
         for j in range(image_width):
-            if image[i, j] == 255:
+            if image[i, j] == 0:
                 for m in range(kernel_height):
                     for n in range(kernel_width):
                         row = i + m - pad_height
@@ -150,10 +138,10 @@ def dilate(image, kernel):
 
     return dilated_image
 
-#############################
-# erosao                    #
-#############################
 def erode(image, kernel):
+    '''
+    Performs erosion on the binary image using the given kernel.
+    '''
     image_height, image_width = image.shape
     kernel_height, kernel_width = kernel.shape
     pad_height = kernel_height // 2
@@ -172,9 +160,6 @@ def erode(image, kernel):
             eroded_image[i, j] = min_val
     return eroded_image
 
-#############################
-# 'main'  #
-#############################
 
 #Read image
 parser = argparse.ArgumentParser(description='Script description')
@@ -187,24 +172,19 @@ args = parser.parse_args()
 image_name = args.image_name
 
 img = readpgm (image_name)
-
 img = np.array(img)
 
+# Applying threshold
 img = threshold(img, 55)
 img = np.array(img)
 
+# Dilation
 kernel = np.ones((4, 4), dtype=np.uint8)
 img = dilate(img, kernel)
 
+# Erosion
 kernel = np.ones((3, 3), dtype=np.uint8)
 img = erode(img, kernel)
 
+# Connected components labeling
 img = connected_components_labeling(img)
-
-savepgm("result.pgm", img, 255)
-
-#Discomment this line for linux system
-# os.system("{} {} &".format("eog", "result.pgm"))
-
-#Discomment this line for windows system
-os.system("{} {} &".format("i_view64", "result.pgm"))
