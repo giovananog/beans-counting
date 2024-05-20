@@ -45,19 +45,15 @@ def savepgm(name, img, depth):
     '''
     Saves a PGM image with the given name, image array, and depth.
     '''
-    # Dimensions
     heigth = len(img)
     width = len(img[0])
 
-    # Open file to write in
     with open(name, 'w') as f:
-        # Pgm header
         f.write("P2\n")
         f.write("# Image processing with python - ByDu\n")
         f.write("{} {}\n".format(width, heigth))
-        f.write("{}\n".format(depth))  # Max gray level
+        f.write("{}\n".format(depth))  
 
-        # write pixels to pgm file
         for line in img:
             for pixel in line:
                 f.write("{} ".format(pixel))
@@ -95,7 +91,7 @@ def union(parent, i, j):
 
 def label(image):
     '''
-    Labels connected components in a binary image.
+    Labels connected components in a image.
     Uses a union-find algorithm to manage connected components and returns the number of components.
     '''
     nr = len(image)
@@ -124,15 +120,11 @@ def label(image):
                     px[i * nc + j] = t
                     union(parent, r, t)
 
-    for i in range(nr * nc):
-        px[i] = find(parent, px[i])
-
-    return len(set(px)) - 1
-
+    return len(set([find(parent, x) for x in px])) - 1
 
 def dilate(image):
     '''
-    Performs dilation on the binary image using the given kernel.
+    Performs dilation on the given image.
     '''
     nr = len(image)
     nc = len(image[0])
@@ -159,12 +151,12 @@ def erode(image):
 
     for i in range(1, nr - 1):
         for j in range(1, nc - 1):
-            minimo = float('inf') 
+            minimum = float('inf') 
             for y in range(-1, 2):
                 for x in range(-1, 2):
                     pixel = image[i + y][j + x]
-                    minimo = min(minimo, pixel)
-            out[i][j] = minimo  
+                    minimum = min(minimum, pixel)
+            out[i][j] = minimum  
 
     return out
 
@@ -174,7 +166,7 @@ def count_beans(img):
     Returns the number of beans.
     '''
     img = np.array(img)
-    threshold_value = 66  
+    threshold_value = 63
 
     # thresholding
     img_thresholded = np.where(img >= threshold_value, 0, 1)
@@ -187,6 +179,7 @@ def count_beans(img):
     img_dilated = dilate(img_eroded)
 
     return label(img_dilated)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Script description')
